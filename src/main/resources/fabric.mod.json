@@ -1,0 +1,30 @@
+{
+	"schemaVersion": 1,
+	"id": "biggerenderchests",
+	"version": "${version}",
+	"name": "Bigger Ender Chests",
+	"description": "This mod changes the size of the ender chest from 3 to 6 rows.",
+	"authors": [
+		"FsmDev"
+	],
+	"contact": {
+		"homepage": "https://fsmdev.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "MIT",
+	"icon": "assets/biggerenderchests/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.fsmdev.biggerenderchests.BiggerEnderChests"
+		]
+	},
+	"mixins": [
+		"biggerenderchests.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.16",
+		"minecraft": "~1.21",
+		"java": ">=21"
+	}
+}
