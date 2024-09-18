@@ -3,7 +3,9 @@
 	"package": "net.fsmdev.biggerenderchests.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"ExampleMixin"
+		"EnderChestBlockMixin",
+		"PlayerEntityMixin",
+		"SimpleInventoryMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
