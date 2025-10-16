@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "net.fsmdev.biggerenderchests.mixin",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_22",
 	"mixins": [
 		"EnderChestBlockMixin",
 		"PlayerEntityMixin",
