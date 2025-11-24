@@ -4,7 +4,7 @@ Param(
 )
 
 # Ensure we're on main branch
-git checkout main
+git checkout master
 git pull
 
 # Create and push tag (this will trigger tag-release.yml workflow)
