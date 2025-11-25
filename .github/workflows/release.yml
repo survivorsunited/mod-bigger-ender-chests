@@ -1,5 +1,5 @@
 # Creates a GitHub release when a tag is created
-# This workflow will build the project and attach the built artifacts to the release
+# This workflow will build the project for all Minecraft versions and attach all built artifacts to the release
 
 name: release
 on:
@@ -8,10 +8,12 @@ on:
       - "**"
 
 jobs:
-  release:
+  build:
+    strategy:
+      matrix:
+        # Build for all supported Minecraft versions
+        minecraft_version: ["1.21.6", "1.21.8", "1.21.9", "1.21.10"]
     runs-on: ubuntu-22.04
-    permissions:
-      contents: write
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
@@ -25,19 +27,51 @@ jobs:
         with:
           java-version: 21
           distribution: "microsoft"
+      - name: update gradle wrapper distribution url
+        run: |
+          GRADLE_VERSION=$(jq -r ".[\"${{ matrix.minecraft_version }}\"].gradle_version" versions.json)
+          if [ "$GRADLE_VERSION" != "null" ] && [ -n "$GRADLE_VERSION" ]; then
+            GRADLE_URL="https\\://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+            sed -i "s|distributionUrl=.*|distributionUrl=$GRADLE_URL|" gradle/wrapper/gradle-wrapper.properties
+            echo "Updated Gradle distribution URL to: https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+          fi
       - name: cache gradle dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ matrix.minecraft_version }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'versions.json') }}
           restore-keys: |
+            ${{ runner.os }}-gradle-${{ matrix.minecraft_version }}-
             ${{ runner.os }}-gradle-
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
-      - name: build
-        run: ./gradlew build --no-daemon
+      - name: build for Minecraft ${{ matrix.minecraft_version }}
+        run: ./gradlew build --no-daemon -Pminecraft_version=${{ matrix.minecraft_version }}
+      - name: upload artifacts for ${{ matrix.minecraft_version }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.minecraft_version }}
+          path: build/libs/*.jar
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: artifacts-*
+          merge-multiple: true
+          path: release-artifacts
       - name: get version from gradle
         id: version
         run: |
@@ -56,9 +90,15 @@ jobs:
           body: |
             ## Bigger Ender Chests ${{ steps.version.outputs.version }}
             
-            Built artifacts are attached to this release.
+            ### Supported Minecraft Versions
+            - 1.21.6
+            - 1.21.8
+            - 1.21.9
+            - 1.21.10
+            
+            Built artifacts for all supported versions are attached to this release.
           files: |
-            build/libs/*.jar
+            release-artifacts/*.jar
           draft: false
           prerelease: false
         env:

@@ -1,5 +1,15 @@
+buildscript {
+	repositories {
+		maven {
+			name = 'Fabric'
+			url = 'https://maven.fabricmc.net/'
+		}
+		mavenCentral()
+		gradlePluginPortal()
+	}
+}
+
 plugins {
-	id 'fabric-loom' version '1.7-SNAPSHOT'
 	id 'maven-publish'
 }
 
@@ -8,6 +18,48 @@ group = project.maven_group
 
 base {
 	archivesName = project.archives_base_name
+}
+
+// Multi-version support: Accept minecraft_version as property, default to gradle.properties
+def versionsFile = file("versions.json")
+def useVersionMapping = project.hasProperty("minecraft_version") && versionsFile.exists()
+
+// Load version mappings from versions.json if minecraft_version property is set
+if (useVersionMapping) {
+	def mcVersion = project.minecraft_version
+	def versionsJson = new groovy.json.JsonSlurper().parse(versionsFile)
+	if (versionsJson.containsKey(mcVersion)) {
+		def versionConfig = versionsJson[mcVersion]
+		project.ext.minecraft_version = mcVersion
+		project.ext.yarn_mappings = versionConfig.yarn_mappings
+		project.ext.loader_version = versionConfig.loader_version
+		project.ext.fabric_version = versionConfig.fabric_version
+		project.ext.loom_version = versionConfig.loom_version ?: project.loom_version
+		project.ext.gradle_version = versionConfig.gradle_version
+		println "Using version mapping for Minecraft ${mcVersion} with Loom ${project.ext.loom_version} and Gradle ${project.ext.gradle_version}"
+	} else {
+		throw new GradleException("Minecraft version ${mcVersion} not found in versions.json")
+	}
+} else {
+	// Use defaults from gradle.properties
+	project.ext.minecraft_version = project.minecraft_version
+	project.ext.yarn_mappings = project.yarn_mappings
+	project.ext.loader_version = project.loader_version
+	project.ext.fabric_version = project.fabric_version
+	project.ext.loom_version = project.hasProperty("loom_version") ? project.loom_version : project.loom_version
+	if (project.hasProperty("minecraft_version")) {
+		println "Using Minecraft version ${project.minecraft_version} from property (versions.json not found or not used)"
+	} else {
+		println "Using default Minecraft version ${project.minecraft_version} from gradle.properties"
+	}
+}
+
+// Apply fabric-loom plugin with the determined version
+apply plugin: 'fabric-loom'
+fabric {
+	loom {
+		// Loom version is set via the plugin application above
+	}
 }
 
 repositories {
@@ -19,21 +71,27 @@ repositories {
 }
 
 dependencies {
-	// To change the versions see the gradle.properties file
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	// To change the versions see the gradle.properties file or versions.json
+	minecraft "com.mojang:minecraft:${project.ext.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.ext.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.ext.loader_version}"
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
-	// modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	// modImplementation "net.fabricmc.fabric-api:fabric-api:${project.ext.fabric_version}"
 	
 }
 
 processResources {
 	inputs.property "version", project.version
+	inputs.property "minecraft_version", project.ext.minecraft_version
+	inputs.property "loader_version", project.ext.loader_version
 
 	filesMatching("fabric.mod.json") {
-		expand "version": project.version
+		expand(
+			"version": project.version,
+			"minecraft_version": project.ext.minecraft_version,
+			"loader_version": project.ext.loader_version
+		)
 	}
 }
 
@@ -48,7 +106,7 @@ java {
 }
 
 jar {
-	archiveFileName = "${project.archives_base_name}-${project.mod_version}-${project.minecraft_version}.jar"
+	archiveFileName = "${project.archives_base_name}-${project.mod_version}-${project.ext.minecraft_version}.jar"
 	
 	from("LICENSE") {
 		rename { "${it}_${project.base.archivesName.get()}"}
