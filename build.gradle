@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.7.4'
+	id 'fabric-loom' version '1.6.11'
 	id 'maven-publish'
 }
 
@@ -9,6 +9,10 @@ group = project.maven_group
 base {
 	archivesName = project.archives_base_name
 }
+
+// Multi-version support: Accept minecraft_version as property, default to gradle.properties
+def versionsFile = file("versions.json")
+def useVersionMapping = project.hasProperty("minecraft_version") && versionsFile.exists()
 
 // Load version mappings from versions.json if minecraft_version property is set
 if (useVersionMapping) {
