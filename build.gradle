@@ -1,34 +1,7 @@
-buildscript {
-	repositories {
-		maven {
-			name = 'Fabric'
-			url = 'https://maven.fabricmc.net/'
-		}
-		mavenCentral()
-		gradlePluginPortal()
-	}
-	
-	// Determine loom version from versions.json if available
-	def loomVersion = "1.6.11" // default
-	def versionsFile = file("versions.json")
-	if (project.hasProperty("minecraft_version") && versionsFile.exists()) {
-		def versionsJson = new groovy.json.JsonSlurper().parse(versionsFile)
-		def mcVersion = project.minecraft_version
-		if (versionsJson.containsKey(mcVersion) && versionsJson[mcVersion].loom_version) {
-			loomVersion = versionsJson[mcVersion].loom_version
-		}
-	}
-	
-	dependencies {
-		classpath "net.fabricmc:fabric-loom:${loomVersion}"
-	}
-}
-
 plugins {
+	id 'fabric-loom' version '1.7.4'
 	id 'maven-publish'
 }
-
-apply plugin: net.fabricmc.loom.LoomGradlePlugin
 
 version = project.mod_version
 group = project.maven_group
