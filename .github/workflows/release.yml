@@ -160,12 +160,28 @@ jobs:
           pattern: artifacts-*
           merge-multiple: false
           path: release-artifacts
-      - name: verify artifacts and list JARs
+      - name: verify artifacts and rename JARs with Minecraft version
         run: |
           echo "Listing all downloaded artifacts:"
           find release-artifacts -name "*.jar" -type f
           echo ""
-          echo "JAR files found:"
+          echo "Renaming JARs to include Minecraft version..."
+          
+          # Rename JARs to include Minecraft version in filename
+          for dir in release-artifacts/artifacts-*; do
+            if [ -d "$dir" ]; then
+              MC_VERSION=$(basename "$dir" | sed 's/artifacts-//')
+              JAR_FILE=$(find "$dir" -name "*.jar" -type f | head -1)
+              if [ -n "$JAR_FILE" ]; then
+                NEW_NAME="biggerenderchests-1.1.0-${MC_VERSION}.jar"
+                mv "$JAR_FILE" "$dir/$NEW_NAME"
+                echo "Renamed: $(basename "$JAR_FILE") -> $NEW_NAME"
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "JAR files after renaming:"
           find release-artifacts -name "*.jar" -type f -exec ls -lh {} \;
           JAR_COUNT=$(find release-artifacts -name "*.jar" -type f | wc -l)
           echo "Total JAR files: $JAR_COUNT"
@@ -173,6 +189,17 @@ jobs:
             echo "ERROR: Expected 4 JAR files, found $JAR_COUNT"
             exit 1
           fi
+          
+          # Verify all JARs have unique names with version
+          echo ""
+          echo "Verifying JAR filenames include Minecraft version:"
+          for jar in release-artifacts/artifacts-*/*.jar; do
+            if [[ "$jar" != *"-1.21."* ]]; then
+              echo "ERROR: JAR filename does not include Minecraft version: $jar"
+              exit 1
+            fi
+            echo "✓ $jar"
+          done
       - name: get version from gradle
         id: version
         run: |
