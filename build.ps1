@@ -56,7 +56,9 @@ function Get-GradleVersion {
     param([string]$McVersion)
     
     if ($jqAvailable) {
-        $gradleVersion = jq -r ".[\"$McVersion\"].gradle_version" versions.json
+        # Use proper JSON escaping for jq
+        $escapedVersion = $McVersion -replace '"', '\"'
+        $gradleVersion = jq -r ".[`"$escapedVersion`"].gradle_version" versions.json
     } else {
         $versions = Get-Content "versions.json" | ConvertFrom-Json
         $gradleVersion = $versions.$McVersion.gradle_version
@@ -148,7 +150,7 @@ if ($MinecraftVersion) {
     # Build for all versions
     if ($jqAvailable) {
         $allVersions = jq -r 'keys[]' versions.json
-        $versionsToBuild = $allVersions | ForEach-Object { $_.Trim() }
+        $versionsToBuild = $allVersions | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
     } else {
         $versions = Get-Content "versions.json" | ConvertFrom-Json
         $versionsToBuild = $versions.PSObject.Properties.Name
