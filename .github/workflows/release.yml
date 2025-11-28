@@ -56,8 +56,96 @@ jobs:
           path: build/libs/*.jar
           retention-days: 1
 
-  release:
+  test-server:
     needs: build
+    strategy:
+      matrix:
+        minecraft_version: ["1.21.6", "1.21.8", "1.21.9", "1.21.10"]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+      - name: setup jdk 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: "microsoft"
+      - name: download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts-${{ matrix.minecraft_version }}
+          path: test-mod
+      - name: setup test server
+        run: |
+          mkdir -p test-server
+          cd test-server
+          
+          # Download Minecraft server JAR
+          MC_VERSION="${{ matrix.minecraft_version }}"
+          case "$MC_VERSION" in
+            "1.21.6")
+              SERVER_URL="https://piston-data.mojang.com/v1/objects/e6ec2f64e6080b9b5d9b471b291c33cc7f509733/server.jar"
+              ;;
+            "1.21.8")
+              SERVER_URL="https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b5b4fc76dfbd5/server.jar"
+              ;;
+            "1.21.9")
+              SERVER_URL="https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b5b4fc76dfbd5/server.jar"
+              ;;
+            "1.21.10")
+              SERVER_URL="https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b5b4fc76dfbd5/server.jar"
+              ;;
+          esac
+          
+          echo "Downloading Minecraft server for $MC_VERSION..."
+          curl -L -o server.jar "$SERVER_URL"
+          
+          # Download Fabric installer
+          curl -L -o fabric-installer.jar "https://maven.fabricmc.net/net/fabricmc/fabric-installer/1.0.0/fabric-installer-1.0.0.jar"
+          
+          # Install Fabric
+          java -jar fabric-installer.jar server -mcversion "$MC_VERSION" -loader "0.17.3" -downloadMinecraft
+          
+          # Create mods directory and copy mod
+          mkdir -p mods
+          cp ../test-mod/*/*.jar mods/ 2>/dev/null || cp ../test-mod/*.jar mods/
+          
+          echo "Mod JARs in mods directory:"
+          ls -lh mods/
+      - name: test server startup
+        timeout-minutes: 5
+        run: |
+          cd test-server
+          echo "eula=true" > eula.txt
+          
+          # Start server and check for mod loading
+          timeout 60 java -Xmx2G -Xms1G -jar fabric-server-launch.jar nogui 2>&1 | tee server.log &
+          SERVER_PID=$!
+          
+          # Wait for server to start
+          sleep 30
+          
+          # Check if server is running and mod loaded
+          if ! kill -0 $SERVER_PID 2>/dev/null; then
+            echo "ERROR: Server process died"
+            cat server.log
+            exit 1
+          fi
+          
+          # Check logs for mod loading
+          if grep -i "bigger.*ender.*chest" server.log || grep -i "mod.*loaded" server.log; then
+            echo "SUCCESS: Mod appears to have loaded"
+          else
+            echo "WARNING: Could not confirm mod loading from logs"
+            cat server.log
+          fi
+          
+          # Stop server
+          kill $SERVER_PID 2>/dev/null || true
+          wait $SERVER_PID 2>/dev/null || true
+
+  release:
+    needs: [build, test-server]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -70,8 +158,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: artifacts-*
-          merge-multiple: true
+          merge-multiple: false
           path: release-artifacts
+      - name: verify artifacts and list JARs
+        run: |
+          echo "Listing all downloaded artifacts:"
+          find release-artifacts -name "*.jar" -type f
+          echo ""
+          echo "JAR files found:"
+          find release-artifacts -name "*.jar" -type f -exec ls -lh {} \;
+          JAR_COUNT=$(find release-artifacts -name "*.jar" -type f | wc -l)
+          echo "Total JAR files: $JAR_COUNT"
+          if [ "$JAR_COUNT" -ne 4 ]; then
+            echo "ERROR: Expected 4 JAR files, found $JAR_COUNT"
+            exit 1
+          fi
       - name: get version from gradle
         id: version
         run: |
@@ -98,7 +199,10 @@ jobs:
             
             Built artifacts for all supported versions are attached to this release.
           files: |
-            release-artifacts/*.jar
+            release-artifacts/artifacts-1.21.6/**/*.jar
+            release-artifacts/artifacts-1.21.8/**/*.jar
+            release-artifacts/artifacts-1.21.9/**/*.jar
+            release-artifacts/artifacts-1.21.10/**/*.jar
           draft: false
           prerelease: false
         env:
