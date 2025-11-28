@@ -114,6 +114,12 @@ java {
 }
 
 jar {
+	// Configure archive name after version mapping is loaded
+	doFirst {
+		archiveFileName = "${project.archives_base_name}-${project.mod_version}-${project.ext.minecraft_version}.jar"
+	}
+	
+	// Set default, will be overridden in doFirst if version mapping is used
 	archiveFileName = "${project.archives_base_name}-${project.mod_version}-${project.ext.minecraft_version}.jar"
 	
 	from("LICENSE") {
