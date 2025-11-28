@@ -1,16 +1,16 @@
-// Determine Loom version early from versions.json if minecraft_version is provided
-def versionsFile = file("versions.json")
-def loomVersion = project.hasProperty("loom_version") ? project.loom_version : "1.7.4" // Default fallback
-if (project.hasProperty("minecraft_version") && versionsFile.exists()) {
-	def mcVersion = project.minecraft_version
-	def versionsJson = new groovy.json.JsonSlurper().parse(versionsFile)
-	if (versionsJson.containsKey(mcVersion)) {
-		def versionConfig = versionsJson[mcVersion]
-		loomVersion = versionConfig.loom_version ?: loomVersion
-	}
-}
-
 buildscript {
+	// Determine Loom version early from versions.json if minecraft_version is provided
+	def versionsFile = file("versions.json")
+	def loomVersion = project.hasProperty("loom_version") ? project.loom_version : "1.7.4" // Default fallback
+	if (project.hasProperty("minecraft_version") && versionsFile.exists()) {
+		def mcVersion = project.minecraft_version
+		def versionsJson = new groovy.json.JsonSlurper().parse(versionsFile)
+		if (versionsJson.containsKey(mcVersion)) {
+			def versionConfig = versionsJson[mcVersion]
+			loomVersion = versionConfig.loom_version ?: loomVersion
+		}
+	}
+	
 	repositories {
 		maven {
 			name = "Fabric"
