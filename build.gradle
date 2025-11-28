@@ -1,7 +1,33 @@
+// Determine Loom version early from versions.json if minecraft_version is provided
+def versionsFile = file("versions.json")
+def loomVersion = project.hasProperty("loom_version") ? project.loom_version : "1.7.4" // Default fallback
+if (project.hasProperty("minecraft_version") && versionsFile.exists()) {
+	def mcVersion = project.minecraft_version
+	def versionsJson = new groovy.json.JsonSlurper().parse(versionsFile)
+	if (versionsJson.containsKey(mcVersion)) {
+		def versionConfig = versionsJson[mcVersion]
+		loomVersion = versionConfig.loom_version ?: loomVersion
+	}
+}
+
+buildscript {
+	repositories {
+		maven {
+			name = "Fabric"
+			url = "https://maven.fabricmc.net/"
+		}
+		mavenCentral()
+	}
+	dependencies {
+		classpath "net.fabricmc:fabric-loom:${loomVersion}"
+	}
+}
+
 plugins {
-	id 'fabric-loom' version '1.7.4'
 	id 'maven-publish'
 }
+
+apply plugin: 'fabric-loom'
 
 version = project.mod_version
 group = project.maven_group
@@ -11,7 +37,6 @@ base {
 }
 
 // Multi-version support: Accept minecraft_version as property, default to gradle.properties
-def versionsFile = file("versions.json")
 def useVersionMapping = project.hasProperty("minecraft_version") && versionsFile.exists()
 
 // Load version mappings from versions.json if minecraft_version property is set
