@@ -37,6 +37,7 @@ base {
 }
 
 // Multi-version support: Accept minecraft_version as property, default to gradle.properties
+def versionsFile = file("versions.json")
 def useVersionMapping = project.hasProperty("minecraft_version") && versionsFile.exists()
 
 // Load version mappings from versions.json if minecraft_version property is set
