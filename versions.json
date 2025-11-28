@@ -4,7 +4,7 @@
     "loader_version": "0.17.3",
     "fabric_version": "0.128.2+1.21.6",
     "loom_version": "1.7.4",
-    "gradle_version": "8.5",
+    "gradle_version": "8.8",
     "java_version": 21
   },
   "1.21.8": {
@@ -12,7 +12,7 @@
     "loader_version": "0.17.3",
     "fabric_version": "0.134.0+1.21.8",
     "loom_version": "1.7.4",
-    "gradle_version": "8.5",
+    "gradle_version": "8.8",
     "java_version": 21
   },
   "1.21.9": {
@@ -20,7 +20,7 @@
     "loader_version": "0.17.3",
     "fabric_version": "0.134.0+1.21.9",
     "loom_version": "1.7.4",
-    "gradle_version": "8.5",
+    "gradle_version": "8.8",
     "java_version": 21
   },
   "1.21.10": {
@@ -28,7 +28,7 @@
     "loader_version": "0.17.3",
     "fabric_version": "0.135.0+1.21.10",
     "loom_version": "1.7.4",
-    "gradle_version": "8.5",
+    "gradle_version": "8.8",
     "java_version": 21
   }
 }
