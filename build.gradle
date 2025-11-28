@@ -113,17 +113,20 @@ java {
 	targetCompatibility = JavaVersion.VERSION_21
 }
 
-jar {
-	// Configure archive name after version mapping is loaded
-	doFirst {
-		archiveFileName = "${project.archives_base_name}-${project.mod_version}-${project.ext.minecraft_version}.jar"
-	}
-	
-	// Set default, will be overridden in doFirst if version mapping is used
-	archiveFileName = "${project.archives_base_name}-${project.mod_version}-${project.ext.minecraft_version}.jar"
-	
-	from("LICENSE") {
-		rename { "${it}_${project.base.archivesName.get()}"}
+// Configure jar task after version mapping is determined
+afterEvaluate {
+	jar {
+		def mcVersion = project.hasProperty("minecraft_version") && project.ext.has("minecraft_version") 
+			? project.ext.minecraft_version 
+			: project.hasProperty("minecraft_version") 
+				? project.minecraft_version 
+				: project.findProperty("minecraft_version") ?: "unknown"
+		
+		archiveFileName = "${project.archives_base_name}-${project.mod_version}-${mcVersion}.jar"
+		
+		from("LICENSE") {
+			rename { "${it}_${project.base.archivesName.get()}"}
+		}
 	}
 }
 
