@@ -210,6 +210,17 @@ jobs:
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+      - name: delete old release artifacts
+        run: |
+          # Delete any old artifacts that don't match the versioned pattern
+          gh release view ${{ steps.tag.outputs.tag }} --json assets --jq '.assets[] | select(.name | test("^biggerenderchests-.*\\.jar$") and (test("-1\\.21\\.[0-9]+\\.jar$") | not)) | .id' | while read asset_id; do
+            if [ -n "$asset_id" ]; then
+              echo "Deleting old asset ID: $asset_id"
+              gh api -X DELETE "/repos/${{ github.repository }}/releases/assets/$asset_id" || true
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: create release
         uses: softprops/action-gh-release@v2
         with:
